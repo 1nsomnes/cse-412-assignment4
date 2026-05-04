@@ -1,0 +1,111 @@
+<!doctype html>
+<html>
+<head>
+<title>Assignment 4 - Indexing Demo</title>
+<style>
+body { font-family: Arial, sans-serif; margin: 20px; background: #fafafa; color: #222; }
+h1 { font-size: 22px; }
+h2 { font-size: 18px; margin-bottom: 8px; }
+.wrap { display: flex; gap: 20px; }
+.col { flex: 1; border: 1px solid #999; padding: 12px; background: #fff; }
+.box { border: 1px solid #ccc; padding: 10px; margin-bottom: 12px; }
+input[type=text] { padding: 4px; width: 200px; }
+button { padding: 4px 10px; }
+table { border-collapse: collapse; margin-top: 8px; width: 100%; font-size: 13px; }
+th, td { border: 1px solid #aaa; padding: 4px 6px; text-align: left; }
+th { background: #eee; }
+.time { margin-top: 6px; font-weight: bold; color: #225; }
+.note { color: #666; font-size: 12px; margin-bottom: 14px; }
+</style>
+</head>
+<body>
+
+<h1>CSE 412 Assignment 4 - Indexed vs Non-Indexed Queries</h1>
+<p class="note">Stock trade ledger. Try ticker AAPL, GOOGL, TSLA, etc. Try broker Fidelity, Schwab, Robinhood, etc.</p>
+
+<div class="wrap">
+
+  <div class="col">
+    <h2>Search without Indexing</h2>
+
+    <div class="box">
+      <h3>Single table (trades by ticker)</h3>
+      <input type="text" id="ni_single" placeholder="ticker e.g. AAPL" value="AAPL">
+      <button onclick="doSearch('no_index','single','ni_single','ni_single_out')">Search</button>
+      <div class="time" id="ni_single_time"></div>
+      <div id="ni_single_out"></div>
+    </div>
+
+    <div class="box">
+      <h3>Join (trades + traders by broker)</h3>
+      <input type="text" id="ni_join" placeholder="broker e.g. Fidelity" value="Fidelity">
+      <button onclick="doSearch('no_index','join','ni_join','ni_join_out')">Search</button>
+      <div class="time" id="ni_join_time"></div>
+      <div id="ni_join_out"></div>
+    </div>
+  </div>
+
+  <div class="col">
+    <h2>Search with Indexing</h2>
+
+    <div class="box">
+      <h3>Single table (trades by ticker)</h3>
+      <input type="text" id="ix_single" placeholder="ticker e.g. AAPL" value="AAPL">
+      <button onclick="doSearch('indexed','single','ix_single','ix_single_out')">Search</button>
+      <div class="time" id="ix_single_time"></div>
+      <div id="ix_single_out"></div>
+    </div>
+
+    <div class="box">
+      <h3>Join (trades + traders by broker)</h3>
+      <input type="text" id="ix_join" placeholder="broker e.g. Fidelity" value="Fidelity">
+      <button onclick="doSearch('indexed','join','ix_join','ix_join_out')">Search</button>
+      <div class="time" id="ix_join_time"></div>
+      <div id="ix_join_out"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function doSearch(mode, qtype, inputId, outId) {
+  var term = document.getElementById(inputId).value;
+  var timeId = inputId + '_time';
+  document.getElementById(timeId).innerText = 'running...';
+  document.getElementById(outId).innerHTML = '';
+
+  fetch('/search', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({mode: mode, query_type: qtype, search_term: term})
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    document.getElementById(timeId).innerText = 'Execution time: ' + data.execution_time_ms.toFixed(3) + ' ms';
+    var html = '<table><tr>';
+    for (var i = 0; i < data.columns.length; i++) {
+      html += '<th>' + data.columns[i] + '</th>';
+    }
+    html += '</tr>';
+    if (data.rows.length === 0) {
+      html += '<tr><td colspan="' + data.columns.length + '">no rows</td></tr>';
+    } else {
+      for (var j = 0; j < data.rows.length; j++) {
+        html += '<tr>';
+        for (var k = 0; k < data.rows[j].length; k++) {
+          html += '<td>' + data.rows[j][k] + '</td>';
+        }
+        html += '</tr>';
+      }
+    }
+    html += '</table>';
+    document.getElementById(outId).innerHTML = html;
+  })
+  .catch(function(err) {
+    document.getElementById(timeId).innerText = 'error: ' + err;
+  });
+}
+</script>
+
+</body>
+</html>
